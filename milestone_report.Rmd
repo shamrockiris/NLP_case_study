@@ -1,0 +1,127 @@
+---
+title: "Milestone Report for NLP case study"
+author: "Xiaowen Wang"
+date: "July 25, 2015"
+output: html_document
+---
+
+# Introduction  
+This report gives a brief summary of the text data studyed so far, which is crawled from website. There are 3 sections of the data in use: US blogs, US news, US twitter. We will explain the exploratory analysis done to the 3 text data and provide some interesting insights. 
+
+# Preview of the Data  
+Three files: "en_US.blogs.txt", "en_US.news.txt", "en_US.twitter.txt" are used in this project. 
+```{r,echo=FALSE}
+Line_count <- c(0,0,0)  
+con <- file("en_US.blogs.txt","r")
+Line_count[1] = length(readLines(con)); close(con)
+con <- file("en_US.news.txt","r")
+Line_count[2] = length(readLines(con)); close(con)
+con <- file("en_US.twitter.txt","r")
+Line_count[3] = length(readLines(con)); close(con)
+Item <- c("en_US.blogs.txt","en_US.blogs.txt","en_US.blogs.txt")
+data.frame(Item,Line_count)
+```
+
+According to the table above, the data set is huge. I will randomly resampling the data sets to speed up the summary. 
+
+# Resampling Data Set
+To resampling data set, we generate random binomial sequence to choose part of the lines of plain text.
+```{r}
+# function to do the resampling
+resample<-function(File, indicator){  
+    j <- 1
+    box <- rep("",sum(indicator))
+    con <- file(File,"r")
+    for (i in 1:length(indicator)) {
+        if (indicator[i] == 1) { box[j] <- readLines(con,1) 
+                               j <- j+1 }
+        else { temp <- readLines(con,1) 
+              rm(temp)  }
+    }
+    close(con)
+    return(box)
+}
+# flip a coin to decide whether read in this line
+set.seed(777)
+cBlogs <- rbinom(Line_count[1],1,0.05)
+cNews <- rbinom(Line_count[2],1,0.05)
+cTwi <- rbinom(Line_count[3],1,0.05)
+# resample the 3 data sets
+blogs <- resample("en_US.blogs.txt",cBlogs)
+news <- resample("en_US.news.txt",cNews)
+twitter <- resample("en_US.twitter.txt",cTwi)
+```
+
+# Convert to Corpus Object    
+To carry out analysis to the data set, we need to convert the object to corpus object using "tm" package, designed for natural language processing. After that, do some cleaning of the data. We will consider all the words as lower case, remove english stop words, remove punctuation, remove stripWhitespace and then convert to a DocumentTermMatrix object for further analyze.    
+
+```{r}
+library(tm)
+# function to clean data
+clean <- function(temp){
+    temp <- tm_map(temp, content_transformer(tolower)) 
+    temp <- tm_map(temp, removeWords, stopwords("english")) 
+    temp <- tm_map(temp, removePunctuation) 
+    temp <- tm_map(temp, removeNumbers) 
+    temp <- tm_map(temp, stripWhitespace) 
+    dtm <- DocumentTermMatrix(temp)
+    rm(temp)
+    return(dtm)
+}
+blogs1 <- Corpus(VectorSource(blogs))
+Blogs <- clean(blogs1) ; rm(blogs,blogs1)
+news1 <- Corpus(VectorSource(news))
+News <- clean(news1) ; rm(news,news1)
+twitter1 <- Corpus(VectorSource(twitter))
+Twitter <- clean(twitter1) ; rm(twitter,twitter1)
+```
+
+# Exporatory Analysis    
+We look into the 3 data sets seperately, see if there's any difference pattern within type. Twitter, blogs and news will speak and write in different tones. We may want to build different word prediction modern in different usage. The exploratory analysis will give us a basic idea of segmenting the users.   
+
+## Explore the Blogs Data    
+```{r}
+library(ggplot2)
+freq <- sort(colSums(as.matrix(Blogs)),decreasing=TRUE)
+wordFre <- data.frame(word=names(freq),freq=freq)
+top20 <- wordFre[1:20,]
+qplot(x=word,y=freq,data=top20)
+library(wordcloud)
+set.seed(555)
+wordcloud(names(freq),freq,min.freq=2000,colors=brewer.pal(6,"Dark2"))
+rm(freq,wordFre,top20,Blogs)
+```
+
+## Explore the News Data  
+```{r}
+freq <- sort(colSums(as.matrix(News)),decreasing=TRUE)
+wordFre <- data.frame(word=names(freq),freq=freq)
+top20 <- wordFre[1:20,]
+qplot(x=word,y=freq,data=top20)
+library(wordcloud)
+set.seed(555)
+wordcloud(names(freq),freq,min.freq=2000,colors=brewer.pal(6,"Dark2"))
+rm(freq,wordFre,top20,News)
+```
+
+## Explore the Twitter Data  
+```{r}
+freq <- sort(colSums(as.matrix(Twitter)),decreasing=TRUE)
+wordFre <- data.frame(word=names(freq),freq=freq)
+top20 <- wordFre[1:20,]
+qplot(x=word,y=freq,data=top20)
+library(wordcloud)
+set.seed(555)
+wordcloud(names(freq),freq,min.freq=2000,colors=brewer.pal(6,"Dark2"))
+rm(freq,wordFre,top20,Twitter)
+```
+
+# Future Plan
+- Keep the findings of different tones in this report. Try to build different models for different tone predicting next word.   
+- Generate N-gram model to expand the prediction.
+- Build a model where former expression doesn't exist in corpus.   
+- Validate model
+- Build data products to predict next word based on input
+
+
+
