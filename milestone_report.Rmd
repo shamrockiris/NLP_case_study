@@ -1,3 +1,5 @@
+Rpubs link can be found here: http://rpubs.com/shamrockiris/97467
+
 ---
 title: "Milestone Report for NLP case study"
 author: "Xiaowen Wang"
